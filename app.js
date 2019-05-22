@@ -6,7 +6,6 @@ const express = require('express')
 mongoose.connect('mongodb://ajdin:qqqq1111@ds135726.mlab.com:35726/engineer', { useNewUrlParser: true })
 
 const appSchema = new mongoose.Schema({
-    _id: ObjectId,
     type: String,
     name: String,
     createdAt: Date,
@@ -19,7 +18,6 @@ const appSchema = new mongoose.Schema({
     }
   })
 const pointsSchema = new mongoose.Schema ({
-    _id: ObjectId,
     applicationId: String,
     points: Number,
     status: String,
@@ -29,8 +27,40 @@ const pointsSchema = new mongoose.Schema ({
   })
 
 const Applications = mongoose.model('applications', appSchema)
-const Points = mongoose.model('points', pointsSchema )
+const Points = mongoose.model('points', pointsSchema)
 
-app.get('/', (req,res) => res.send('Hello !!'))
+app.get('/api/application', async (req,res) => {
+  const [applications, points] = await Promise.all([
+    Applications.find({}),
+    Points.find({ status: 'complete'})
+  ])
+  const appFilter = applications.map(x => ({applicationId: x.id, name: x.name,platform: x.meta.platform}))
+  const grouped = Array.from(points
+    .filter(x => x.points)
+    .reduce((m, { applicationId, points }) => m.set(applicationId, (m.get(applicationId) || 0) + points), new Map),
+    ([applicationId, points]) => ({ applicationId, points })
+  )
+  const resultFilter = []
+  appFilter.forEach((itm, i) => {
+    resultFilter.push({...itm, ...grouped[i]})
+  })
+  console.log(resultFilter)
+  res.json(resultFilter)
+})
+
+app.get('/api/application/:id' , async (req,res) => {
+  const {id} = req.params
+  let responseFromDb
+  Applications.findById(id, function (err, result) { 
+    if(err) {
+      console.log(err)
+    } else {
+      return result
+    }
+  })
+  const responseFromDb = {id: req.params.name}
+  console.log(responseFromDb)
+  res.json(id)
+})
 
 app.listen(3000, () => console.log('Server ready!!!'))
