@@ -57,10 +57,22 @@ app.get('/api/application/:id' ,  (req,res) => {
       console.log(err)
     } else {
       result
-      console.log(result)
     }
-    responseFromDb = {result}
-    res.json(responseFromDb)
+    responseFromDb = {id: result._id, name: result.name, platform: result.meta.platform}
+  })
+  Points.find({status: 'complete',applicationId:id}, (err,result) =>{
+    if(err){
+      console.log(err)
+    } else {
+      result
+    }
+    const pointsSum = Array.from(result
+      .filter(x => x.points)
+      .reduce((m, { applicationId, points }) => m.set(applicationId, (m.get(applicationId) || 0) + points), new Map),
+      ([applicationId, points]) => ({ applicationId, points })
+    )
+    const zaBobana = {responseFromDb, pointsSum}
+    res.json(zaBobana)
   })
 })
 
